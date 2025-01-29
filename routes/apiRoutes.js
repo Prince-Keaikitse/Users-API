@@ -3,7 +3,7 @@ const router = express.Router();
 const sql = require("mssql");
 const connectToDatabase = require("../db/dbConfig");
 
-// POST route to execute a stored procedure (insert/update)
+// POST route to add a new user
 router.post("/addUser", async (req, res) => {
   const { 
     first_name,
@@ -34,12 +34,54 @@ router.post("/addUser", async (req, res) => {
     const result = await request.execute("REGISTRATION.stp_InsertUpdateUsers");
 
     res.status(200).send({ 
-        message: "User inserted/updated successfully.",
+        message: "User inserted successfully.",
         user_id: result.recordset[0].User_id,
      });
   } catch (err) {
     console.error("Error executing procedure: ", err);
-    res.status(500).send({ error: "Failed to insert/update user. " });
+    res.status(500).send({ error: "Failed to insert user. " });
+  }
+});
+
+//POST route to edit an existing user
+router.post("/editUser", async (req, res) => {
+  const { 
+    first_name,
+    mid_name,
+    last_name,
+    user_role,
+    last_update_by,
+    user_id,
+    transaction
+   } = req.body;
+
+  if (!user_id|| !transaction) {
+    return res.status(400).send({ error: "User ID and Transaction are required!" });
+  }
+
+  try {
+    const pool = await connectToDatabase();
+    const request = pool.request();
+
+    // Add parameters to the request
+    request.input("first_name", sql.NVarChar(255), first_name || null);
+    request.input("mid_name", sql.NVarChar(255), mid_name || null); // Allow nulls for optional params
+    request.input("last_name", sql.NVarChar(255), last_name || null);
+    request.input("user_role", sql.Int, user_role || null);
+    request.input("user_id", sql.Int, user_id);
+    request.input("last_update_by", sql.Int, last_update_by);
+    request.input("transaction", sql.Char, transaction);
+
+
+    const result = await request.execute("REGISTRATION.stp_InsertUpdateUsers");
+
+    res.status(200).send({ 
+        message: "User updated successfully.",
+        user_id: result.recordset[0].User_id,
+     });
+  } catch (err) {
+    console.error("Error executing procedure: ", err);
+    res.status(500).send({ error: "Failed to update user. " });
   }
 });
 
