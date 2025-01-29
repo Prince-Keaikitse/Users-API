@@ -113,4 +113,30 @@ if (!first_name && !user_id) {
   }
 });
 
+
+router.delete("/deleteUser", async (req, res) => {
+  const { user_id } = req.query;
+
+  if (!user_id) {
+    return res.status(400).send({ error: "Please provide user id." });
+  }
+
+  try {
+    const pool = await connectToDatabase();
+    const request = pool.request();
+
+    request.input("user_id", sql.Int, parseInt(user_id));
+
+    const result = await request.execute("REGISTRATION.stp_deleteUser");
+
+    // Assuming the stored procedure returns a status message
+    res.status(200).send({ message: "User deleted successfully", result: result.recordset });
+
+  } catch (err) {
+    console.error("Error executing procedure: ", err);
+    res.status(500).send({ error: "Failed to delete user." });
+  }
+});
+
+
 module.exports = router;
